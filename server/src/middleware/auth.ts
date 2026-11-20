@@ -10,6 +10,7 @@ export interface AuthenticatedRequest extends Request {
     role: 'seller' | 'admin';
     sellerId?: string;
   };
+  params: Record<string, string>;
 }
 
 export const authenticateJwt = async (
