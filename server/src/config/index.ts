@@ -11,10 +11,10 @@ export const config = {
 
   // Supabase PostgreSQL & Auth Credentials
   supabase: {
-    url: process.env.SUPABASE_URL || '',
-    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-    anonKey: process.env.SUPABASE_ANON_KEY || '',
-  },
+  url: process.env.SUPABASE_URL || '',
+  serviceKey: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  anonKey: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '',
+},
 
   // Razorpay Sandbox Credentials
   razorpay: {
