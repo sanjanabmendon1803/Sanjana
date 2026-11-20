@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   Package,
   Layers,
-  Award
+  Award,
+  Search
 } from 'lucide-react';
 import { ProductCard } from '../components/common/ProductCard';
 import { SellerCard } from '../components/common/SellerCard';
@@ -23,6 +24,7 @@ export const HomePage: React.FC = () => {
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [featuredSellers, setFeaturedSellers] = useState<SellerProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [heroSearch, setHeroSearch] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -74,8 +76,38 @@ export const HomePage: React.FC = () => {
                 Zero middlemen. Zero markups. 100% authentic craftsmanship.
               </p>
 
+              {/* In-Hero Search Form */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (heroSearch.trim()) {
+                    navigate(`/explore?search=${encodeURIComponent(heroSearch.trim())}`);
+                  } else {
+                    navigate('/explore');
+                  }
+                }}
+                className="pt-2 max-w-xl mx-auto lg:mx-0"
+              >
+                <div className="relative flex items-center bg-white border border-[#D6CCB8] focus-within:border-forest-600 focus-within:ring-2 focus-within:ring-forest-600/20 rounded-2xl p-1.5 shadow-sm transition">
+                  <Search className="w-5 h-5 text-forest-600 ml-3 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search pickles, brownies, earrings, artisans..."
+                    value={heroSearch}
+                    onChange={(e) => setHeroSearch(e.target.value)}
+                    className="w-full px-3 py-2 text-sm text-charcoal-800 bg-transparent outline-none placeholder-charcoal-400"
+                  />
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-forest-600 hover:bg-forest-700 text-white text-xs font-semibold rounded-xl transition shadow-sm shrink-0"
+                  >
+                    Search
+                  </button>
+                </div>
+              </form>
+
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-1">
                 <Link
                   to="/explore"
                   className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-forest-600 hover:bg-forest-700 text-white font-semibold text-sm shadow-card hover:shadow-lifted transition flex items-center justify-center gap-2 group"

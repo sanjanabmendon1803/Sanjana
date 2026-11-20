@@ -4,7 +4,7 @@ import path from 'path';
 dotenv.config();
 
 export const config = {
-  port: parseInt(process.env.PORT || '5000', 10),
+  port: parseInt(process.env.PORT || '4000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   jwtSecret: process.env.JWT_SECRET || 'localroots_super_secret_jwt_key_2026',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',

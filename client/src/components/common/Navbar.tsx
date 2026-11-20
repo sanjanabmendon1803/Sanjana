@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingBag,
   Search,
@@ -31,17 +31,29 @@ export const Navbar: React.FC = () => {
   const { itemCount } = useCart();
   const { role, seller, adminUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Sync search input with URL query parameter when on /explore
+  useEffect(() => {
+    if (location.pathname === '/explore') {
+      const params = new URLSearchParams(location.search);
+      setSearchQuery(params.get('search') || '');
+    }
+  }, [location.pathname, location.search]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/explore?search=${encodeURIComponent(searchQuery.trim())}`);
-      setIsMobileMenuOpen(false);
+    const trimmed = searchQuery.trim();
+    if (trimmed) {
+      navigate(`/explore?search=${encodeURIComponent(trimmed)}`);
+    } else {
+      navigate('/explore');
     }
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -73,15 +85,42 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Search Bar */}
           <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-4">
-            <div className="relative w-full">
+            <div className="relative w-full flex items-center">
               <input
                 type="text"
-                placeholder="Search homemade pickles, brownies, earrings, artisans..."
+                placeholder="Search pickles, brownies, earrings, artisans..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-cream-200/80 border border-[#D6CCB8] focus:border-forest-600 focus:bg-white text-sm rounded-full py-2.5 pl-11 pr-4 outline-none transition text-charcoal-800 placeholder-charcoal-400"
+                className="w-full bg-cream-200/80 border border-[#D6CCB8] focus:border-forest-600 focus:bg-white text-sm rounded-full py-2.5 pl-11 pr-24 outline-none transition text-charcoal-800 placeholder-charcoal-400"
               />
-              <Search className="w-4 h-4 text-charcoal-400 absolute left-4 top-3.5" />
+              <button
+                type="submit"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-charcoal-400 hover:text-forest-600 transition"
+                title="Search"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    if (location.pathname === '/explore') {
+                      navigate('/explore');
+                    }
+                  }}
+                  className="absolute right-16 top-1/2 -translate-y-1/2 text-charcoal-400 hover:text-charcoal-600 p-1"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3.5 py-1.5 bg-forest-600 hover:bg-forest-700 text-white rounded-full text-xs font-semibold shadow-sm transition"
+              >
+                Search
+              </button>
             </div>
           </form>
 
@@ -188,17 +227,32 @@ export const Navbar: React.FC = () => {
       {/* Mobile Drawer Menu */}
       {isMobileMenuOpen && (
         <div className="lg:hidden border-t border-[#E8E1D3] bg-[#FAF8F2] px-4 pt-3 pb-6 space-y-4">
-          <form onSubmit={handleSearchSubmit}>
-            <div className="relative w-full">
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+            <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search products & makers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-cream-200 border border-[#D6CCB8] text-sm rounded-xl py-2 pl-10 pr-3 outline-none"
+                className="w-full bg-cream-200 border border-[#D6CCB8] text-sm rounded-xl py-2 pl-10 pr-8 outline-none"
               />
-              <Search className="w-4 h-4 text-charcoal-400 absolute left-3 top-3" />
+              <Search className="w-4 h-4 text-charcoal-400 absolute left-3 top-2.5" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2.5 text-charcoal-400 hover:text-charcoal-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-forest-600 hover:bg-forest-700 text-white text-xs font-semibold rounded-xl shrink-0"
+            >
+              Search
+            </button>
           </form>
 
           <div className="flex flex-col gap-2 font-medium text-sm text-charcoal-800">

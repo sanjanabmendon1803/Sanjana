@@ -632,15 +632,27 @@ export class DatabaseService {
       }
     }
 
-    // Search query
+    // Search query (matches title, description, ingredients, category name, seller name, and handles singular/plural)
     if (params?.search && params.search.trim()) {
-      const term = params.search.toLowerCase().trim();
+      const rawTerm = params.search.toLowerCase().trim();
+      const terms = rawTerm.split(/\s+/).filter(Boolean);
+
       list = list.filter(p => {
         const seller = sellersStore.find(s => s.id === p.seller_id);
+        const category = categoriesStore.find(c => c.id === p.category_id);
+        const searchableText = `${p.name} ${p.description} ${p.ingredients_or_materials || ''} ${seller?.business_name || ''} ${category?.name || ''} ${seller?.city || ''}`.toLowerCase();
+
+        // Match full phrase or all individual words (with simple s/es stemming)
         return (
-          p.name.toLowerCase().includes(term) ||
-          p.description.toLowerCase().includes(term) ||
-          (seller && seller.business_name.toLowerCase().includes(term))
+          searchableText.includes(rawTerm) ||
+          terms.every(t => {
+            const singular = t.endsWith('ies') ? t.slice(0, -3) + 'y' : t.endsWith('es') ? t.slice(0, -2) : t.endsWith('s') ? t.slice(0, -1) : t;
+            return (
+              searchableText.includes(t) ||
+              searchableText.includes(singular) ||
+              searchableText.includes(t + 's')
+            );
+          })
         );
       });
     }

@@ -19,7 +19,7 @@ export const ExplorePage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters State
+  // Filters State initialized from URL search params
   const initialCategory = searchParams.get('category') || '';
   const initialSearch = searchParams.get('search') || '';
   const initialSort = searchParams.get('sort') || 'newest';
@@ -41,13 +41,25 @@ export const ExplorePage: React.FC = () => {
     });
   }, []);
 
+  // Sync state whenever URL query params change (e.g. from Navbar or browser navigation)
+  useEffect(() => {
+    const urlCategory = searchParams.get('category') || '';
+    const urlSearch = searchParams.get('search') || '';
+    const urlSort = searchParams.get('sort') || 'newest';
+
+    setSearch(urlSearch);
+    setSelectedCategory(urlCategory);
+    setSort(urlSort);
+  }, [searchParams]);
+
   // Fetch Products based on filters
   useEffect(() => {
+    let isCancelled = false;
     const fetchProducts = async () => {
       setLoading(true);
       try {
         const res = await api.getProducts({
-          search: search || undefined,
+          search: search.trim() || undefined,
           category: selectedCategory || undefined,
           minPrice: minPrice ? parseFloat(minPrice) : undefined,
           maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
@@ -56,45 +68,63 @@ export const ExplorePage: React.FC = () => {
           sort: sort as any,
         });
 
-        if (res.success) {
+        if (!isCancelled && res.success) {
           setProducts(res.data);
         }
       } catch (err) {
         console.error('Failed to load products', err);
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProducts();
-  }, [selectedCategory, sort, city, pinCode]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [search, selectedCategory, sort, city, pinCode]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Trigger product fetch by updating search param or refetching
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
-      if (search) next.set('search', search);
-      else next.delete('search');
+      const trimmed = search.trim();
+      if (trimmed) {
+        next.set('search', trimmed);
+      } else {
+        next.delete('search');
+      }
       return next;
     });
+  };
 
-    api.getProducts({
-      search: search || undefined,
-      category: selectedCategory || undefined,
-      minPrice: minPrice ? parseFloat(minPrice) : undefined,
-      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
-      city: city || undefined,
-      pinCode: pinCode || undefined,
-      sort: sort as any,
-    }).then(res => {
-      if (res.success) setProducts(res.data);
+  const handleClearSearch = () => {
+    setSearch('');
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('search');
+      return next;
+    });
+  };
+
+  const handleCategorySelect = (slug: string) => {
+    setSelectedCategory(slug);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (slug) {
+        next.set('category', slug);
+      } else {
+        next.delete('category');
+      }
+      return next;
     });
   };
 
   const handlePriceApply = () => {
     api.getProducts({
-      search: search || undefined,
+      search: search.trim() || undefined,
       category: selectedCategory || undefined,
       minPrice: minPrice ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
@@ -115,9 +145,6 @@ export const ExplorePage: React.FC = () => {
     setPinCode('');
     setSort('newest');
     setSearchParams({});
-    api.getProducts({ sort: 'newest' }).then(res => {
-      if (res.success) setProducts(res.data);
-    });
   };
 
   return (
@@ -138,16 +165,26 @@ export const ExplorePage: React.FC = () => {
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Search by product or maker name..."
+              placeholder="Search by product, ingredient, or maker name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-[#D6CCB8] focus:border-forest-600 text-sm rounded-2xl py-2.5 pl-10 pr-4 outline-none transition text-charcoal-800"
+              className="w-full bg-white border border-[#D6CCB8] focus:border-forest-600 focus:ring-2 focus:ring-forest-600/20 text-sm rounded-2xl py-2.5 pl-10 pr-9 outline-none transition text-charcoal-800 placeholder-charcoal-400"
             />
             <Search className="w-4 h-4 text-charcoal-400 absolute left-3.5 top-3.5" />
+            {search && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute right-3 top-3 text-charcoal-400 hover:text-charcoal-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <button
             type="submit"
-            className="px-5 py-2.5 bg-forest-600 hover:bg-forest-700 text-white rounded-2xl text-xs font-semibold shadow-sm transition"
+            className="px-5 py-2.5 bg-forest-600 hover:bg-forest-700 text-white rounded-2xl text-xs font-semibold shadow-sm transition shrink-0"
           >
             Search
           </button>
@@ -178,7 +215,7 @@ export const ExplorePage: React.FC = () => {
             <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
               <button
                 type="button"
-                onClick={() => setSelectedCategory('')}
+                onClick={() => handleCategorySelect('')}
                 className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-medium transition ${
                   selectedCategory === ''
                     ? 'bg-forest-100 text-forest-800 font-bold'
@@ -191,7 +228,7 @@ export const ExplorePage: React.FC = () => {
                 <button
                   key={c.slug}
                   type="button"
-                  onClick={() => setSelectedCategory(c.slug)}
+                  onClick={() => handleCategorySelect(c.slug)}
                   className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-medium transition ${
                     selectedCategory === c.slug
                       ? 'bg-forest-100 text-forest-800 font-bold'
@@ -277,11 +314,56 @@ export const ExplorePage: React.FC = () => {
         <div className="lg:col-span-3 space-y-6">
           {/* Top Sort & Count Bar */}
           <div className="bg-white p-4 rounded-2xl border border-[#E8E1D3] flex flex-wrap items-center justify-between gap-4 shadow-soft">
-            <div className="text-xs font-semibold text-charcoal-600">
-              Showing <span className="text-forest-700 font-bold">{products.length}</span> authentic homemade creations
+            <div className="text-xs font-semibold text-charcoal-600 flex flex-wrap items-center gap-2">
+              <span>Showing <strong className="text-forest-700">{products.length}</strong> authentic creations</span>
+              {search && (
+                <span className="inline-flex items-center gap-1.5 bg-forest-50 text-forest-800 border border-forest-200 px-2.5 py-1 rounded-lg text-xs font-medium">
+                  Search: <strong>"{search}"</strong>
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="text-forest-600 hover:text-forest-900 ml-0.5"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
               {selectedCategory && (
-                <span className="ml-2 bg-terracotta-50 text-terracotta-700 px-2 py-0.5 rounded-md">
-                  {categories.find(c => c.slug === selectedCategory)?.name || selectedCategory}
+                <span className="inline-flex items-center gap-1.5 bg-terracotta-50 text-terracotta-800 border border-terracotta-200 px-2.5 py-1 rounded-lg text-xs font-medium">
+                  Category: <strong>{categories.find(c => c.slug === selectedCategory)?.name || selectedCategory}</strong>
+                  <button
+                    type="button"
+                    onClick={() => handleCategorySelect('')}
+                    className="text-terracotta-600 hover:text-terracotta-900 ml-0.5"
+                    title="Clear category filter"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              {city && (
+                <span className="inline-flex items-center gap-1.5 bg-cream-200 text-charcoal-800 px-2.5 py-1 rounded-lg text-xs font-medium">
+                  City: <strong>{city}</strong>
+                  <button
+                    type="button"
+                    onClick={() => setCity('')}
+                    className="text-charcoal-500 hover:text-charcoal-800 ml-0.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              {pinCode && (
+                <span className="inline-flex items-center gap-1.5 bg-cream-200 text-charcoal-800 px-2.5 py-1 rounded-lg text-xs font-medium">
+                  PIN: <strong>{pinCode}</strong>
+                  <button
+                    type="button"
+                    onClick={() => setPinCode('')}
+                    className="text-charcoal-500 hover:text-charcoal-800 ml-0.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </span>
               )}
             </div>
@@ -365,7 +447,7 @@ export const ExplorePage: React.FC = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => {
-                  setSelectedCategory(e.target.value);
+                  handleCategorySelect(e.target.value);
                   setIsFilterDrawerOpen(false);
                 }}
                 className="w-full bg-cream-100 border border-[#D6CCB8] text-xs rounded-xl p-2.5"
