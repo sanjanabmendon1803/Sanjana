@@ -1,4 +1,5 @@
-const API_BASE = '/api';
+const rawApiBase = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = rawApiBase.endsWith('/') ? rawApiBase.slice(0, -1) : rawApiBase;
 
 export class ApiError extends Error {
   constructor(public message: string, public status?: number) {

@@ -13,8 +13,27 @@ import { errorHandler } from './middleware/errorHandler';
 const app = express();
 
 // Global Middlewares
+const allowedOrigins = [
+  config.clientUrl,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+].filter(Boolean);
+
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    // Allow non-browser requests (mobile apps, curl, server-to-server) or matching allowed origins
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      config.nodeEnv !== 'production'
+    ) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Fallback to allow cross-origin requests gracefully
+    }
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-razorpay-signature'],
 }));
@@ -43,12 +62,16 @@ app.use('/api/admin', adminRoutes);
 app.use(errorHandler);
 
 // Start Server
+const port = parseInt(process.env.PORT || String(config.port || 4000), 10);
+const host = '0.0.0.0';
+
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(config.port, () => {
+  app.listen(port, host, () => {
     console.log(`====================================================`);
-    console.log(` LOCALROOTS API Server running on port ${config.port}`);
-    console.log(` Health Check: http://localhost:${config.port}/api/health`);
+    console.log(` LOCALROOTS API Server running on http://${host}:${port}`);
+    console.log(` Health Check: http://${host}:${port}/api/health`);
     console.log(` Environment: ${config.nodeEnv}`);
+    console.log(` Client URL: ${config.clientUrl}`);
     console.log(`====================================================`);
   });
 }
