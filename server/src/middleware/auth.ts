@@ -11,6 +11,8 @@ export interface AuthenticatedRequest extends Request {
     sellerId?: string;
   };
   params: Record<string, string>;
+  body: any;
+  query: Record<string, string | string[] | undefined>;
 }
 
 export const authenticateJwt = async (
